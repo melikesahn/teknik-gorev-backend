@@ -1,3 +1,4 @@
+using System.IdentityModel.Tokens.Jwt;
 using JWT_auth.Data;
 using JWT_auth.DTOs.Auth;
 using JWT_auth.Models;
@@ -5,6 +6,7 @@ using JWT_auth.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -73,6 +75,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     public async Task<IActionResult> Login(LoginRequest request)
     {
         var user = await _userManager.FindByEmailAsync(request.Email);
@@ -120,17 +123,40 @@ public class AuthController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Logout(RefreshRequest request)
     {
+        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (currentUserId is null)
+        {
+            return Unauthorized();
+        }
+
+        var jti = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        var expClaim = User.FindFirstValue(JwtRegisteredClaimNames.Exp);
+        if (!string.IsNullOrEmpty(jti) && long.TryParse(expClaim, out var expUnix))
+        {
+            var expiresAt = DateTimeOffset.FromUnixTimeSeconds(expUnix).UtcDateTime;
+            if (!await _dbContext.RevokedAccessTokens.AnyAsync(x => x.Jti == jti))
+            {
+                _dbContext.RevokedAccessTokens.Add(new RevokedAccessToken
+                {
+                    Jti = jti,
+                    UserId = currentUserId,
+                    AccessTokenExpiresAtUtc = expiresAt
+                });
+            }
+        }
+
         var tokenInDb = await _dbContext.RefreshTokens
             .FirstOrDefaultAsync(x => x.Token == request.RefreshToken);
 
         if (tokenInDb is null || tokenInDb.IsRevoked)
         {
+            await _dbContext.SaveChangesAsync();
             return Ok("Already logged out.");
         }
 
-        var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
-        if (currentUserId is null || tokenInDb.UserId != currentUserId)
+        if (tokenInDb.UserId != currentUserId)
         {
+            await _dbContext.SaveChangesAsync();
             return Forbid();
         }
 
