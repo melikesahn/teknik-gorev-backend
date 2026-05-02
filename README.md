@@ -43,7 +43,7 @@ dotnet run
 
 Geliştirme ortamında Swagger: `http://localhost:<port>/swagger` (port `JWT-auth/Properties/launchSettings.json` veya konsol çıktısından). Swagger’da **Authorize** → **Value** alanına login yanıtındaki **`accessToken`** metnini yapıştır (`Bearer ` yazma; Swagger ekler).
 
-## Özellikler (özet)
+## Özellikler
 
 | Özellik | Açıklama |
 |--------|----------|
