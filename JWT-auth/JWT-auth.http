@@ -1,6 +1,7 @@
 @JWT_auth_HostAddress = http://localhost:5218
 
-GET {{JWT_auth_HostAddress}}/weatherforecast/
+### Korumalı örnek (token yokken 401 beklenir)
+GET {{JWT_auth_HostAddress}}/api/RoleProtected/individual
 Accept: application/json
 
 ###

@@ -16,7 +16,7 @@ public static class SwaggerExtensions
             });
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
-                Description = "JWT. Example: 'Bearer {token}'",
+                Description = "POST /api/Auth/login yanıtındaki accessToken değerini yapıştır. Sadece token metni (önüne 'Bearer ' yazma; Swagger otomatik ekler).",
                 Name = "Authorization",
                 In = ParameterLocation.Header,
                 Type = SecuritySchemeType.Http,

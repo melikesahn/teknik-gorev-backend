@@ -16,13 +16,6 @@ namespace JWT_auth.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private static readonly HashSet<string> AllowedRoles = new(StringComparer.OrdinalIgnoreCase)
-    {
-        "Individual",
-        "Corporate",
-        "Admin"
-    };
-
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly ApplicationDbContext _dbContext;
     private readonly ITokenService _tokenService;
@@ -41,11 +34,6 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
-        if (!AllowedRoles.Contains(request.Role))
-        {
-            return BadRequest("Role must be one of: Individual, Corporate, Admin.");
-        }
-
         var existingUser = await _userManager.FindByEmailAsync(request.Email);
         if (existingUser is not null)
         {
@@ -64,7 +52,8 @@ public class AuthController : ControllerBase
             return BadRequest(result.Errors.Select(e => e.Description));
         }
 
-        var roleResult = await _userManager.AddToRoleAsync(user, request.Role);
+        var roleName = request.Role.ToString();
+        var roleResult = await _userManager.AddToRoleAsync(user, roleName);
         if (!roleResult.Succeeded)
         {
             return BadRequest(roleResult.Errors.Select(e => e.Description));
